@@ -9,6 +9,10 @@
 #include <GL/glew.h>
 #include <vector>
 #include <GL/glut.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "TLEDSolver.h"
 
 static int wWidth = 1024, wHeight = 1024;
