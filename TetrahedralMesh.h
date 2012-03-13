@@ -44,6 +44,7 @@ struct ShapeFunctionDerivatives
 
 struct TetrahedralTLEDState
 {
+  float4 *sumCollisionForces;
 	float4 *ABC, *Ui_t, *Ui_tminusdt, *pointForces, *externalForces;
 	ShapeFunctionDerivatives *shape_function_deriv;
 	int maxNumForces;

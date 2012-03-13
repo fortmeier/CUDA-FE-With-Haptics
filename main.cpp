@@ -17,11 +17,31 @@
 
 static int wWidth = 1024, wHeight = 1024;
 
+extern void initHaptic();
+extern float hX;
+extern float hY;
+extern float hZ;
+
 TetrahedralTLEDState* state;
 TetrahedralMesh* mesh;
 TriangleSurface* surface;
 
  
+void drawSphere( float x, float y, float z, float r )
+{
+	glPushMatrix();
+
+	glTranslatef( x, y, z );
+	GLUquadricObj *quadric;
+
+	quadric = gluNewQuadric();
+	gluSphere( quadric, r, 36, 18 );
+	gluDeleteQuadric( quadric );
+
+	glPopMatrix();
+
+}
+
 void display()
 {
 	glPushMatrix();
@@ -34,6 +54,8 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	display(0,mesh, state, surface);
+	glEnable(GL_DEPTH_TEST);
+	drawSphere(hX, hY, hZ, 3.5);
 
 	glPopMatrix();
 
@@ -50,7 +72,7 @@ void keyboard( unsigned char key, int x, int y) {
 		case 'n':
 			mesh = loadMesh("data/torus_low_res.msh");
 			surface = loadSurfaceOBJ("data/torus_low_res.msh.obj");
-			precompute(mesh, state, 0.001f, 0.0f, 0.0f, 10007.0f, 5500.0f, 0.5f, 10.0f);
+			precompute(mesh, state, 0.001f, 0.0f, 0.0f, 1007.0f, 55000.0f, 0.5f, 10.0f);
 			break;
 		/*case 'm':
 			mesh = loadMesh("data/torus_low_res.msh");
@@ -123,6 +145,8 @@ int main(int argc, char** argv) {
 	mesh = loadMesh("data/torus_low_res.msh");
 	surface = loadSurfaceOBJ("data/torus_low_res.msh.obj");
 	precompute(mesh, state, 0.001f, 0.0f, 0.0f, 1007.0f, 49329.0f, 0.5f, 10.0f);
+
+	initHaptic();
 
 	atexit(cleanupDisplay);
     glutMainLoop();

@@ -7,6 +7,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <cutil_math.h>
+
 #include "TetrahedralMesh.h"
 
 
@@ -370,7 +373,6 @@ calculateDrivingForces_k(Point *points, float *masses, float4 *externalForces, u
 		return;
 
 	externalForces[me_idx] = make_float4(0, -9820*masses[me_idx], 0, 0); // using millimeters - not meters - thus the factor 1000
-//	externalForces[me_idx] = make_float4(0, 0, -9820*masses[me_idx], 0); // using millimeters - not meters - thus the factor 1000
 
 }
 
@@ -391,3 +393,28 @@ applyGroundConstraint_k(Point *points, float4 *displacements, float4 *oldDisplac
 		//oldDisplacements[me_idx] = displacements[me_idx];
 	}
 }
+
+__global__ void
+calculateCollisionForces_k(Point *points, float4 *displacements, float4 *externalForces, float4 *sumCollisionForces, unsigned int numPoints, float4 xyz, float r)
+{
+	int me_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (me_idx>=numPoints)
+		return;
+
+	Point me = points[me_idx] + displacements[me_idx];
+
+	float4 offset = me - xyz;
+
+	float l = length ( crop_last_dim(offset) );
+
+	if (l < r)
+	{
+		float4 fff = -0.1 * (offset / l ) * (r - l);
+		externalForces[me_idx] += fff * -100000.0;
+		atomicAdd(&sumCollisionForces[0].x, fff.x);
+		atomicAdd(&sumCollisionForces[0].y, fff.y);
+		atomicAdd(&sumCollisionForces[0].z, fff.z);
+	}
+}
+

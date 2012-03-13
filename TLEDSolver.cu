@@ -24,6 +24,8 @@
 #include "TetrahedralMesh.h"
 #include "Vector3D.h"
 
+#include "haptic.h"
+
 #define NUM_VBO 10
 //this is a bit of a hack
 //a maximum of NUM_VBO elements can be displayed 
@@ -567,6 +569,14 @@ void applyFloorConstraint(TetrahedralMesh* mesh, TetrahedralTLEDState *state, fl
 	applyGroundConstraint_k<<<make_uint3(pointSize,1,1), make_uint3(BLOCKSIZE,1,1)>>>(mesh->points, state->Ui_t, state->Ui_tminusdt, floorZPosition, mesh->numPoints);
 }
 
+void calculateCollisionForces(TetrahedralMesh* mesh, TetrahedralTLEDState *state, float x, float y, float z, float r, float4* result)
+{
+	cudaMemset((void*)state->sumCollisionForces, 0, sizeof(float4) );
+	int pointSize = (int)ceil(((float)mesh->numPoints)/BLOCKSIZE);
+	calculateCollisionForces_k<<<make_uint3(pointSize,1,1), make_uint3(BLOCKSIZE,1,1)>>>(mesh->points, state->Ui_t, state->externalForces, state->sumCollisionForces, mesh->numPoints, make_float4(x, y, z, 0), r);
+	cudaMemcpy(result, state->sumCollisionForces, sizeof(float4), cudaMemcpyDeviceToHost);
+}
+
 
 void calculateInternalForces(TetrahedralMesh* mesh, TetrahedralTLEDState *state) 
 {
@@ -586,11 +596,21 @@ void doTimeStep(TetrahedralMesh* mesh, TetrahedralTLEDState *state)
 
 	calculateInternalForces(mesh, state);
 
+	float4 result = make_float4(0,0,0,0);
+
+	calculateCollisionForces(mesh, state, hX, hY, hZ, 3.5, &result);
+
+	fX = result.x;
+	fY = result.y;
+	fZ = result.z;
+
 	updateDisplacements_k<<<make_uint3(pointSize,1,1), make_uint3(BLOCKSIZE,1,1)>>>(state->Ui_t, state->Ui_tminusdt, mesh->mass, state->externalForces, state->pointForces, state->maxNumForces, state->ABC, mesh->numPoints);
+
 
 	float4 *temp = state->Ui_t;
 	state->Ui_t = state->Ui_tminusdt;
 	state->Ui_tminusdt = temp;
+
 }
 
 
@@ -618,6 +638,7 @@ void precompute(TetrahedralMesh* mesh, TetrahedralTLEDState *state,
 	int tetSize = (int)ceil(((float)mesh->numTetrahedra)/BLOCKSIZE);
 	int pointSize = (int)ceil(((float)mesh->numPoints)/BLOCKSIZE);
 
+  cudaMalloc((void**)&(state->sumCollisionForces), sizeof(float4) );
 	cudaMalloc((void**)&(state->ABC), sizeof(float4) * mesh->numPoints);
 	cudaMalloc((void**)&(state->Ui_t), sizeof(float4) * mesh->numPoints);
 	cudaMalloc((void**)&(state->Ui_tminusdt), sizeof(float4) * mesh->numPoints);
