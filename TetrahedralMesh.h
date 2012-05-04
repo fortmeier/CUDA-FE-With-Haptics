@@ -8,6 +8,9 @@
 #ifndef TETRAHEDRALMESH
 #define TETRAHEDRALMESH
 
+#include </usr/local/cuda/include/vector_types.h>
+
+namespace TLED {
 #include <vector_types.h>
 
 typedef float4 Point;
@@ -51,5 +54,5 @@ struct TetrahedralTLEDState
 	float timeStep;
 };
 
-
+}
 #endif

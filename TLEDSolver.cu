@@ -30,6 +30,8 @@
 static GLuint vbo[NUM_VBO] = {0,0,0,0,0,0,0,0,0,0};
 static GLuint normalVbo[NUM_VBO] = {0,0,0,0,0,0,0,0,0,0};
 
+namespace TLED {
+
 TriangleSurface* loadSurfaceOBJ(const char* filename)
 {
 	//todo: do a pass to check how large a buffer is needed;
@@ -488,6 +490,33 @@ void display(unsigned int object_number, TetrahedralMesh* mesh, TetrahedralTLEDS
 	}
 
 
+
+TetrahedralMesh* allocAndCopyMesh(Tetrahedron* hTets, int numTetrahedra, Point* hPoints, int numVertices)
+{
+	Point *dPoints;
+	Tetrahedron *dTets;
+
+	cudaMalloc((void**)&dPoints, sizeof(Point) *numVertices);
+	cudaMalloc((void**)&dTets, sizeof(Tetrahedron)*numTetrahedra);
+
+	cudaMemcpy(dPoints, hPoints, sizeof(Point) *numVertices, cudaMemcpyHostToDevice);
+	cudaMemcpy(dTets, hTets, sizeof(Tetrahedron)*numTetrahedra , cudaMemcpyHostToDevice);
+
+
+	TetrahedralMesh* mesh = (TetrahedralMesh *) malloc(sizeof(TetrahedralMesh));
+
+	mesh->points = dPoints;
+	mesh->numPoints = numVertices;
+	mesh->tetrahedra = dTets;
+	mesh->numTetrahedra = numTetrahedra;
+	printf("Number of points: %i\n", mesh->numPoints);
+	printf("Number of tetrahedra: %i\n", mesh->numTetrahedra );
+
+	return mesh;
+}
+
+
+
 TetrahedralMesh* loadMesh(const char* filename)
 {
 	FILE * pFile;
@@ -529,31 +558,24 @@ TetrahedralMesh* loadMesh(const char* filename)
 
 	fclose (pFile);
 
-	Point *dPoints;
-	Tetrahedron *dTets;
-
-	cudaMalloc((void**)&dPoints, sizeof(Point) *numVertices);
-	cudaMalloc((void**)&dTets, sizeof(Tetrahedron)*numTetrahedra);
-
-	cudaMemcpy(dPoints, hPoints, sizeof(Point) *numVertices, cudaMemcpyHostToDevice); 
-	cudaMemcpy(dTets, hTets, sizeof(Tetrahedron)*numTetrahedra , cudaMemcpyHostToDevice); 
-
+	TetrahedralMesh* mesh = allocAndCopyMesh(hTets, numTetrahedra, hPoints, numVertices);
 
 	free(hPoints);
 	free(hTets);
 
-	TetrahedralMesh * mesh = (TetrahedralMesh *) malloc(sizeof(TetrahedralMesh));
-
-	mesh->points = dPoints;
-	mesh->numPoints = numVertices;
-	mesh->tetrahedra = dTets; 
-	mesh->numTetrahedra = numTetrahedra;
-	printf("Number of points: %i\n", mesh->numPoints);
-	printf("Number of tetrahedra: %i\n", mesh->numTetrahedra );
-
-	return mesh; 
-
+	return mesh;
 }
+
+void copyStateToHost(TetrahedralTLEDState* state, TetrahedralMesh* mesh, Point* hPoints){
+	Point *dPoints = state->Ui_t;
+	cudaMemcpy(hPoints, dPoints, sizeof(Point) *mesh->numPoints, cudaMemcpyDeviceToHost);
+}
+
+void copyStateToDevice(TetrahedralTLEDState* state, TetrahedralMesh* mesh, Point* hPoints){
+	Point *dPoints = state->Ui_t;
+	cudaMemcpy(dPoints, hPoints, sizeof(Point) *mesh->numPoints, cudaMemcpyHostToDevice);
+}
+
 
 void calculateGravityForces(TetrahedralMesh* mesh, TetrahedralTLEDState *state) 
 {
@@ -651,3 +673,4 @@ void precompute(TetrahedralMesh* mesh, TetrahedralTLEDState *state,
 	state->timeStep = timeStep;
 }
 
+}

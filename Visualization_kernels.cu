@@ -11,6 +11,8 @@
 #include "cutil_math.h"
 //#include "float_utils.h"
 
+using namespace TLED;
+
 inline __host__ __device__ float3 crop_last_dim(float4 ui)
 {
 	return make_float3( ui.x, ui.y, ui.z );

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "TetrahedralMesh.h"
 
+using namespace TLED;
 
 __global__ void
 precalculateShapeFunctionDerivatives_k(ShapeFunctionDerivatives *shape_function_derivatives, Tetrahedron *tetrahedra, Point *points, unsigned int numTets)

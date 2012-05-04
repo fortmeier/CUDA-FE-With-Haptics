@@ -15,6 +15,8 @@
 
 #include "TLEDSolver.h"
 
+using namespace TLED;
+
 static int wWidth = 1024, wHeight = 1024;
 
 TetrahedralTLEDState* state;
